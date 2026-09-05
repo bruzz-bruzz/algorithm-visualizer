@@ -82,8 +82,9 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     let cancelled = false;
 
     const animate = async () => {
-      // Map speed (1-100) to delay (500ms-1ms)
-      const delay = Math.max(1, Math.floor(500 / speed));
+      // Map speed (1-100) to delay (3000ms at 1%, down to ~30ms at 100%)
+      // so 1% is genuinely slow (step-by-step) and 100% is near-instant.
+      const delay = Math.max(1, Math.floor(3000 / speed));
 
       while (playingRef.current && !cancelled) {
         setCurrentStep((s) => {

@@ -8,7 +8,7 @@ export default function DPPanel() {
       name: algo.name,
       description: algo.description,
       complexity: algo.complexity,
-      fn: () => algo.fn(0),
+      fn: () => algo.fn(),
     };
     return acc;
   }, {} as Record<string, { name: string; description: string; complexity: string; fn: () => DPStep[] }>);
