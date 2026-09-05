@@ -18,28 +18,27 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
   // Default 250 ms per step — comfortable middle ground.
   const [speed, setSpeed] = useState(0.25);
   const cancelRef = useRef(false);
-  const playingRef = useRef(false);
+  // Mirror of `currentStep` kept in a ref so the animation loop can read the
+  // latest value without having to depend on `currentStep` in its effect deps
+  // (which would re-create the loop on every step).
+  const currentStepRef = useRef(0);
+  useEffect(() => {
+    currentStepRef.current = currentStep;
+  }, [currentStep]);
   // Keep latest options in a ref so the animation loop effect doesn't have to
   // depend on a fresh object identity every render.
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    playingRef.current = isPlaying;
-  }, [isPlaying]);
-
   const setStepData = useCallback((newSteps: T[]) => {
     cancelRef.current = true;
     setSteps(newSteps);
     setCurrentStep(0);
+    currentStepRef.current = 0;
     setIsPlaying(false);
-    // small delay before allowing new playback, then auto-start if there's data
+    // small delay before allowing new playback
     setTimeout(() => {
       cancelRef.current = false;
-      if (newSteps.length > 0) {
-        setIsPlaying(true);
-      }
     }, 10);
   }, []);
 
@@ -47,6 +46,7 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     if (steps.length === 0) return;
     if (currentStep >= steps.length - 1) {
       setCurrentStep(0);
+      currentStepRef.current = 0;
     }
     setIsPlaying(true);
     cancelRef.current = false;
@@ -61,6 +61,7 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     cancelRef.current = true;
     setIsPlaying(false);
     setCurrentStep(0);
+    currentStepRef.current = 0;
     setTimeout(() => {
       cancelRef.current = false;
     }, 10);
@@ -68,25 +69,34 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
 
   const stepForward = useCallback(() => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep((s) => s + 1);
+      const next = currentStep + 1;
+      currentStepRef.current = next;
+      setCurrentStep(next);
     }
   }, [currentStep, steps.length]);
 
   const stepBackward = useCallback(() => {
     if (currentStep > 0) {
-      setCurrentStep((s) => s - 1);
+      const next = currentStep - 1;
+      currentStepRef.current = next;
+      setCurrentStep(next);
     }
   }, [currentStep]);
 
   const skipToEnd = useCallback(() => {
     cancelRef.current = true;
-    setCurrentStep(steps.length - 1);
+    const last = steps.length - 1;
+    currentStepRef.current = last;
+    setCurrentStep(last);
     setIsPlaying(false);
   }, [steps.length]);
 
   // Animation loop. The dependency array intentionally omits `options` — we
   // read it via `optionsRef.current` so a fresh object reference from the parent
-  // can't cause the loop to restart on every render.
+  // can't cause the loop to restart on every render. It also omits
+  // `currentStep` — we read the latest value via `currentStepRef.current`,
+  // which is kept in sync via a separate effect, so the loop isn't re-created
+  // on every step.
   useEffect(() => {
     if (!isPlaying || steps.length === 0) return;
 
@@ -98,21 +108,20 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
       const delay = Math.max(1, Math.floor(Math.max(0, speed) * 1000));
 
       while (!cancelled) {
-        let advanced = false;
-        setCurrentStep((s) => {
-          if (s >= steps.length - 1) {
-            setIsPlaying(false);
-            optionsRef.current.onComplete?.();
-            return s;
-          }
-          optionsRef.current.onStep?.(s);
-          advanced = true;
-          return s + 1;
-        });
-        if (!advanced) {
-          // Reached the end — exit.
+        // Read the current step from the ref (synchronously up-to-date) rather
+        // than from the React `setCurrentStep` updater. The updater runs in a
+        // later render phase, so reading a value set inside it on the same tick
+        // would see the stale value and break the loop.
+        const current = currentStepRef.current;
+        if (current >= steps.length - 1) {
+          setIsPlaying(false);
+          optionsRef.current.onComplete?.();
           return;
         }
+        const next = current + 1;
+        currentStepRef.current = next;
+        setCurrentStep(next);
+        optionsRef.current.onStep?.(current);
         await sleep(delay);
       }
     };
