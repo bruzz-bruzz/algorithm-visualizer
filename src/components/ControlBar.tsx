@@ -137,7 +137,7 @@ export default function ControlBar({
         </div>
         <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-primary-500 to-primary-400 transition-all duration-200"
+            className="h-full bg-gradient-to-r from-primary-500 to-primary-400 transition-[width] duration-150 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>

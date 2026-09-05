@@ -8,7 +8,7 @@ type Data = {
  * Small GitHub-style attribution component, sized to live in the footer.
  * Links out to the project repo, the author's profile, and shows the license.
  */
-export default function Github({ repo, author = 'frkho', authorUrl = 'https://github.com/frkho' }: Data) {
+export default function Github({ repo, author = 'bruzz-bruzz', authorUrl = 'https://github.com/bruzz-bruzz' }: Data) {
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-500">
       <span>Built with React, TypeScript, and TailwindCSS</span>

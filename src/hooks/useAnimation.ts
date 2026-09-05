@@ -147,12 +147,19 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     stepBackward,
     skipToEnd,
     currentData: steps[currentStep],
-    // Progress as a percentage matching the "Step N / total" label: when the
-    // user is on step 5 of 10, the bar is at 50%. Falls back to 0 when no
-    // steps have been loaded, and to 100 when the (only) step is shown.
+    // Progress as a percentage representing "how far through the animation we
+    // are". We use `currentStep / (steps.length - 1)` so the bar sits at 0%
+    // before any step is taken and reaches 100% on the very last step. This
+    // matches the visual mental model of a progress bar: empty at the start,
+    // full at the end. Guarded against N=0 and N=1.
     progress:
       steps.length === 0
         ? 0
-        : Math.max(0, Math.min(100, ((currentStep + 1) / steps.length) * 100)),
+        : steps.length === 1
+        ? 100
+        : Math.max(
+            0,
+            Math.min(100, (currentStep / (steps.length - 1)) * 100)
+          ),
   };
 }

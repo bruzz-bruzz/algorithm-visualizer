@@ -87,7 +87,7 @@ export default function App() {
 
       <footer className="border-t border-slate-700 bg-slate-900/70 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 py-3">
-          <Github repo="https://github.com/frkho/algo-visualizer" />
+          <Github repo="https://github.com/bruzz-bruzz/algorithm-visualizer" />
         </div>
       </footer>
     </div>
