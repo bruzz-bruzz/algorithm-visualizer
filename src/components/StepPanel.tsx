@@ -103,16 +103,19 @@ export default function StepPanel<T>({ title, algorithms, defaultAlgorithm, rend
           >⏭</button>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400 w-16">Speed:</span>
+          <span className="text-xs text-slate-400 w-20">Step delay:</span>
           <input
             type="range"
-            min="1"
-            max="100"
+            min="0.01"
+            max="2"
+            step="0.01"
             value={speed}
             onChange={(e) => setSpeed(Number(e.target.value))}
             className="flex-1 accent-primary-500"
           />
-          <span className="text-xs text-slate-400 w-12 text-right">{speed}%</span>
+          <span className="text-xs text-slate-400 w-16 text-right">
+            {speed.toFixed(2)}s
+          </span>
         </div>
         <div>
           <div className="flex items-center justify-between text-xs text-slate-400 mb-1">

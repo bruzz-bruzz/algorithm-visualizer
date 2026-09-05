@@ -14,7 +14,9 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
   const [steps, setSteps] = useState<T[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState(50); // 1-100, higher = faster
+  // Speed is the delay in seconds between each step.
+  // Smaller = faster, larger = slower. Range: 0.01s (10ms, near-instant) to 2s.
+  const [speed, setSpeed] = useState(0.25);
   const cancelRef = useRef(false);
   const playingRef = useRef(false);
 
@@ -82,29 +84,10 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     let cancelled = false;
 
     const animate = async () => {
-      // The per-step delay is data-size-aware so that:
-      //   - Small datasets (few steps) get a relatively slow per-step delay
-      //     so individual steps are easy to follow.
-      //   - Large datasets (many steps) get a faster per-step delay so the
-      //     whole animation finishes in a watchable amount of time.
-      //
-      // baseDelay = 3000 / sqrt(steps.length), clamped to [3, 150] ms.
-      // This represents the per-step delay at 100% speed. The slider then
-      // scales this: delay = baseDelay × (100 / speed).
-      //
-      // Examples (at 100% speed):
-      //   ~25   steps  -> baseDelay = 150 ms -> ~3.75 s total
-      //   ~100  steps  -> baseDelay = 150 ms -> ~15 s total
-      //   ~1000 steps  -> baseDelay =  95 ms -> ~95 s total
-      //   ~5000 steps  -> baseDelay =  42 ms -> ~3.5 min total
-      //
-      // At 1% speed each step takes baseDelay × 100 ms (truly step-by-step).
-      const safeSpeed = Math.max(1, Math.min(100, speed));
-      const baseDelay = Math.max(
-        3,
-        Math.min(150, Math.floor(3000 / Math.sqrt(steps.length)))
-      );
-      const delay = Math.max(1, Math.floor(baseDelay * (100 / safeSpeed)));
+      // `speed` is the per-step delay in seconds (slider value).
+      // Convert to ms and floor at 1ms so 0 (or near-zero) doesn't busy-loop.
+      const safeSpeed = Math.max(0, speed);
+      const delay = Math.max(1, Math.floor(safeSpeed * 1000));
 
       while (playingRef.current && !cancelled) {
         setCurrentStep((s) => {

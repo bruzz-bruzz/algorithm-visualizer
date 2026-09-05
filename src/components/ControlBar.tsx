@@ -9,7 +9,7 @@ interface ControlBarProps {
   onStepBackward: () => void;
   onSkipToEnd: () => void;
   onGenerateNew: () => void;
-  speed: number;
+  speed: number; // delay in seconds between each step
   setSpeed: (s: number) => void;
   progress: number;
   currentStep: number;
@@ -110,19 +110,20 @@ export default function ControlBar({
         </button>
       </div>
 
-      {/* Speed Slider */}
+      {/* Speed (delay in seconds per step) */}
       <div className="flex items-center gap-3">
-        <span className="text-xs text-slate-400 w-16">Speed:</span>
+        <span className="text-xs text-slate-400 w-16">Step delay:</span>
         <input
           type="range"
-          min="1"
-          max="100"
+          min="0.01"
+          max="2"
+          step="0.01"
           value={speed}
           onChange={(e) => setSpeed(Number(e.target.value))}
           className="flex-1 accent-primary-500"
         />
-        <span className="text-xs text-slate-400 w-12 text-right">
-          {speed}%
+        <span className="text-xs text-slate-400 w-16 text-right">
+          {speed.toFixed(2)}s
         </span>
       </div>
 
@@ -152,7 +153,7 @@ export default function ControlBar({
               label="Step"
               value={`${currentStep + 1}/${totalSteps}`}
             />
-            <StatBox label="Speed" value={`${speed}%`} />
+            <StatBox label="Step delay" value={`${speed.toFixed(2)}s`} />
           </>
         ) : category === 'searching' ? (
           <>
@@ -162,7 +163,7 @@ export default function ControlBar({
               value={`${currentStep + 1}/${totalSteps}`}
             />
             <StatBox label="Found" value={stats.pathLength ?? '—'} />
-            <StatBox label="Speed" value={`${speed}%`} />
+            <StatBox label="Step delay" value={`${speed.toFixed(2)}s`} />
           </>
         ) : (
           <>
@@ -172,7 +173,7 @@ export default function ControlBar({
               label="Step"
               value={`${currentStep + 1}/${totalSteps}`}
             />
-            <StatBox label="Speed" value={`${speed}%`} />
+            <StatBox label="Step delay" value={`${speed.toFixed(2)}s`} />
           </>
         )}
       </div>
