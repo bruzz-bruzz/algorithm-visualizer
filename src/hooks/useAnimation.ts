@@ -82,16 +82,29 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     let cancelled = false;
 
     const animate = async () => {
-      // Map speed (1-100) to a per-step delay (in milliseconds).
-      //   1%   -> 5000 ms (5 s, intentionally slow — step-by-step manual feel)
-      //   10%  ->  500 ms
-      //   25%  ->  200 ms
-      //   50%  ->  100 ms
-      //   100% ->   50 ms
-      // The linear "5000 / speed" mapping makes the slow end genuinely
-      // slow while keeping 100% fast enough to feel near-instant.
+      // The per-step delay is data-size-aware so that:
+      //   - Small datasets (few steps) get a relatively slow per-step delay
+      //     so individual steps are easy to follow.
+      //   - Large datasets (many steps) get a faster per-step delay so the
+      //     whole animation finishes in a watchable amount of time.
+      //
+      // baseDelay = 3000 / sqrt(steps.length), clamped to [3, 150] ms.
+      // This represents the per-step delay at 100% speed. The slider then
+      // scales this: delay = baseDelay × (100 / speed).
+      //
+      // Examples (at 100% speed):
+      //   ~25   steps  -> baseDelay = 150 ms -> ~3.75 s total
+      //   ~100  steps  -> baseDelay = 150 ms -> ~15 s total
+      //   ~1000 steps  -> baseDelay =  95 ms -> ~95 s total
+      //   ~5000 steps  -> baseDelay =  42 ms -> ~3.5 min total
+      //
+      // At 1% speed each step takes baseDelay × 100 ms (truly step-by-step).
       const safeSpeed = Math.max(1, Math.min(100, speed));
-      const delay = Math.max(1, Math.floor(5000 / safeSpeed));
+      const baseDelay = Math.max(
+        3,
+        Math.min(150, Math.floor(3000 / Math.sqrt(steps.length)))
+      );
+      const delay = Math.max(1, Math.floor(baseDelay * (100 / safeSpeed)));
 
       while (playingRef.current && !cancelled) {
         setCurrentStep((s) => {
