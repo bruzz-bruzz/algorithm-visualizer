@@ -8,17 +8,21 @@ interface UseAnimationOptions {
 }
 
 /**
- * Custom hook that animates through a series of steps with start/pause/reset controls.
+ * Custom hook that animates through a series of steps with start/pause/reset
+ * controls. `speed` is the per-step delay in seconds (slider value).
  */
 export function useAnimation<T>(options: UseAnimationOptions = {}) {
   const [steps, setSteps] = useState<T[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  // Speed is the delay in seconds between each step.
-  // Smaller = faster, larger = slower. Range: 0.01s (10ms, near-instant) to 2s.
+  // Default 250 ms per step — comfortable middle ground.
   const [speed, setSpeed] = useState(0.25);
   const cancelRef = useRef(false);
   const playingRef = useRef(false);
+  // Keep latest options in a ref so the animation loop effect doesn't have to
+  // depend on a fresh object identity every render.
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -36,7 +40,7 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     }, 10);
   }, []);
 
-  const play = useCallback(async () => {
+  const play = useCallback(() => {
     if (steps.length === 0) return;
     if (currentStep >= steps.length - 1) {
       setCurrentStep(0);
@@ -77,28 +81,35 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     setIsPlaying(false);
   }, [steps.length]);
 
-  // Animation loop
+  // Animation loop. The dependency array intentionally omits `options` — we
+  // read it via `optionsRef.current` so a fresh object reference from the parent
+  // can't cause the loop to restart on every render.
   useEffect(() => {
     if (!isPlaying || steps.length === 0) return;
 
     let cancelled = false;
 
     const animate = async () => {
-      // `speed` is the per-step delay in seconds (slider value).
-      // Convert to ms and floor at 1ms so 0 (or near-zero) doesn't busy-loop.
-      const safeSpeed = Math.max(0, speed);
-      const delay = Math.max(1, Math.floor(safeSpeed * 1000));
+      // `speed` is the per-step delay in seconds. Convert to milliseconds and
+      // floor at 1 ms so the slider at the lowest value doesn't busy-loop.
+      const delay = Math.max(1, Math.floor(Math.max(0, speed) * 1000));
 
-      while (playingRef.current && !cancelled) {
+      while (!cancelled) {
+        let advanced = false;
         setCurrentStep((s) => {
           if (s >= steps.length - 1) {
             setIsPlaying(false);
-            options.onComplete?.();
+            optionsRef.current.onComplete?.();
             return s;
           }
-          options.onStep?.(s);
+          optionsRef.current.onStep?.(s);
+          advanced = true;
           return s + 1;
         });
+        if (!advanced) {
+          // Reached the end — exit.
+          return;
+        }
         await sleep(delay);
       }
     };
@@ -108,7 +119,7 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     return () => {
       cancelled = true;
     };
-  }, [isPlaying, speed, steps.length, options]);
+  }, [isPlaying, speed, steps.length]);
 
   return {
     steps,
