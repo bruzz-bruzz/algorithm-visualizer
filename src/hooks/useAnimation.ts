@@ -82,9 +82,16 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     let cancelled = false;
 
     const animate = async () => {
-      // Map speed (1-100) to delay (3000ms at 1%, down to ~30ms at 100%)
-      // so 1% is genuinely slow (step-by-step) and 100% is near-instant.
-      const delay = Math.max(1, Math.floor(3000 / speed));
+      // Map speed (1-100) to a per-step delay (in milliseconds).
+      //   1%   -> 5000 ms (5 s, intentionally slow — step-by-step manual feel)
+      //   10%  ->  500 ms
+      //   25%  ->  200 ms
+      //   50%  ->  100 ms
+      //   100% ->   50 ms
+      // The linear "5000 / speed" mapping makes the slow end genuinely
+      // slow while keeping 100% fast enough to feel near-instant.
+      const safeSpeed = Math.max(1, Math.min(100, speed));
+      const delay = Math.max(1, Math.floor(5000 / safeSpeed));
 
       while (playingRef.current && !cancelled) {
         setCurrentStep((s) => {
