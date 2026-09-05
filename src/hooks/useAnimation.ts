@@ -34,9 +34,12 @@ export function useAnimation<T>(options: UseAnimationOptions = {}) {
     setSteps(newSteps);
     setCurrentStep(0);
     setIsPlaying(false);
-    // small delay before allowing new playback
+    // small delay before allowing new playback, then auto-start if there's data
     setTimeout(() => {
       cancelRef.current = false;
+      if (newSteps.length > 0) {
+        setIsPlaying(true);
+      }
     }, 10);
   }, []);
 
